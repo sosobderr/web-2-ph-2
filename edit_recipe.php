@@ -1,26 +1,7 @@
-None selected
-
-Skip to content
-Using Gmail with screen readers
-in:sent
-Enable desktop notifications for Gmail.
-   OK  No thanks
-1 of 1,167
-edit_recipe
-Inbox
-
-Sara Bder <sosobderr@gmail.com>
-Attachments
-10:16 AM (0 minutes ago)
-to me
-
- One attachment
-  •  Scanned by Gmail
 <?php
 require_once 'auth_check.php';
 checkLogin('user');
 
-// Database connection
 $host = 'localhost';
 $db = 'nutrigood';
 $user = 'root';
@@ -38,182 +19,304 @@ try {
     die('Database connection failed: ' . $e->getMessage());
 }
 
-// Get recipe ID from query string
-$recipeID = $_GET['id'] ?? '';
+function convert_youtube_url_to_embed(string $videoUrl): string
+{
+    $videoUrl = trim($videoUrl);
 
-if ($recipeID == '') {
+    if (strpos($videoUrl, 'youtu.be/') !== false) {
+        $path = trim(parse_url($videoUrl, PHP_URL_PATH) ?? '', '/');
+        $videoID = explode('/', $path)[0] ?? '';
+
+        if ($videoID !== '') {
+            return 'https://www.youtube.com/embed/' . $videoID;
+        }
+    }
+
+    if (strpos($videoUrl, 'watch?v=') !== false) {
+        parse_str(parse_url($videoUrl, PHP_URL_QUERY) ?? '', $query);
+
+        if (!empty($query['v'])) {
+            return 'https://www.youtube.com/embed/' . $query['v'];
+        }
+    }
+
+    return $videoUrl;
+}
+
+function ensure_directory_exists(string $directory): void
+{
+    if (!is_dir($directory) && !mkdir($directory, 0777, true)) {
+        die('Failed to create upload folder: ' . $directory);
+    }
+}
+
+function delete_local_file_if_exists(?string $path): void
+{
+    if (empty($path) || strpos($path, 'http://') === 0 || strpos($path, 'https://') === 0) {
+        return;
+    }
+
+    if (file_exists($path)) {
+        unlink($path);
+    }
+}
+
+function delete_old_photo_if_exists(?string $photoFileName): void
+{
+    if (empty($photoFileName)) {
+        return;
+    }
+
+    $path = 'uploads/photos/' . $photoFileName;
+
+    if (file_exists($path)) {
+        unlink($path);
+    }
+}
+
+function save_uploaded_photo_file(array $file, int $userID): string
+{
+    if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        die('Photo upload error. Code: ' . $file['error']);
+    }
+
+    $directory = 'uploads/photos';
+    $filesystemDirectory = __DIR__ . '/' . $directory;
+    ensure_directory_exists($filesystemDirectory);
+
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+
+    if (!in_array($extension, $allowedExtensions, true)) {
+        die('Invalid photo type. Allowed types: jpg, jpeg, png, gif, webp');
+    }
+
+    $safeName = uniqid('recipe_' . $userID . '_', true) . '.' . $extension;
+    $destination = $filesystemDirectory . '/' . $safeName;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        die('Failed to upload recipe photo. Check uploads/photos folder permissions.');
+    }
+
+    return $safeName;
+}
+
+function save_uploaded_video_file(array $file, int $userID): string
+{
+    if (!isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
+        return '';
+    }
+
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        die('Video upload error. Code: ' . $file['error']);
+    }
+
+    $directory = 'uploads/videos';
+    $filesystemDirectory = __DIR__ . '/' . $directory;
+    ensure_directory_exists($filesystemDirectory);
+
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    $allowedExtensions = ['mp4', 'mov', 'webm', 'ogg'];
+
+    if (!in_array($extension, $allowedExtensions, true)) {
+        die('Invalid video type. Allowed types: mp4, mov, webm, ogg');
+    }
+
+    $safeName = uniqid('video_' . $userID . '_', true) . '.' . $extension;
+    $destination = $filesystemDirectory . '/' . $safeName;
+
+    if (!move_uploaded_file($file['tmp_name'], $destination)) {
+        die('Failed to upload video file. Check uploads/videos folder permissions.');
+    }
+
+    return $directory . '/' . $safeName;
+}
+
+function has_valid_ingredient(array $names, array $quantities): bool
+{
+    for ($i = 0; $i < count($names); $i++) {
+        if (trim($names[$i]) !== '' && trim($quantities[$i] ?? '') !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function has_valid_instruction(array $steps): bool
+{
+    foreach ($steps as $step) {
+        if (trim($step) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function require_existing_user(PDO $pdo, int $userID): void
+{
+    $stmt = $pdo->prepare("SELECT id FROM User WHERE id = ? AND userType = 'user'");
+    $stmt->execute([$userID]);
+
+    if (!$stmt->fetch()) {
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        }
+
+        session_destroy();
+        header('Location: login.html?error=' . urlencode('Your login session expired. Please log in again.'));
+        exit();
+    }
+}
+
+$recipeID = (int) ($_POST['recipeID'] ?? $_GET['id'] ?? 0);
+$userID = (int) $_SESSION['user_id'];
+require_existing_user($pdo, $userID);
+
+if ($recipeID <= 0) {
     die('Recipe ID is missing.');
 }
 
-// Get recipe by ID for this logged-in user
-$sql = "SELECT * FROM recipe WHERE id = ? AND userID = ?";
+$sql = "SELECT * FROM Recipe WHERE id = ? AND userID = ?";
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$recipeID, $_SESSION['user_id']]);
+$stmt->execute([$recipeID, $userID]);
 $recipe = $stmt->fetch();
 
 if (!$recipe) {
     die('Recipe not found.');
 }
 
-// Get categories
-$sql = "SELECT id, categoryName FROM recipecategory";
+$sql = "SELECT id, categoryName FROM RecipeCategory ORDER BY categoryName ASC";
 $result = $pdo->query($sql);
 $categories = $result->fetchAll();
 
-// Get ingredients
-$sql = "SELECT * FROM ingredients WHERE recipeID = ? ORDER BY id ASC";
+$sql = "SELECT * FROM Ingredients WHERE recipeID = ? ORDER BY id ASC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$recipeID]);
 $ingredients = $stmt->fetchAll();
 
-// Get instructions
-$sql = "SELECT * FROM instructions WHERE recipeID = ? ORDER BY stepOrder ASC";
+$sql = "SELECT * FROM Instructions WHERE recipeID = ? ORDER BY stepOrder ASC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$recipeID]);
 $instructions = $stmt->fetchAll();
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $recipeID = $_POST['recipeID'];
-    $name = trim($_POST['recipeName']);
-    $categoryID = $_POST['category'];
-    $description = trim($_POST['description']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['recipeName'] ?? '');
+    $categoryID = (int) ($_POST['category'] ?? 0);
+    $description = trim($_POST['description'] ?? '');
 
     $ingredientNames = $_POST['ingredientName'] ?? [];
     $ingredientQtys = $_POST['ingredientQty'] ?? [];
     $instructionSteps = $_POST['instructionStep'] ?? [];
+
+    if ($name === '' || $categoryID <= 0 || $description === '') {
+        die('Please fill in all required fields.');
+    }
+
+    if (!has_valid_ingredient($ingredientNames, $ingredientQtys)) {
+        die('Please add at least one ingredient with quantity.');
+    }
+
+    if (!has_valid_instruction($instructionSteps)) {
+        die('Please add at least one instruction step.');
+    }
 
     $oldPhoto = $recipe['photoFileName'];
     $oldVideo = $recipe['videoFilePath'];
 
     $newPhotoName = $oldPhoto;
     $newVideoPath = $oldVideo;
+    $oldPhotoToDelete = null;
+    $oldVideoToDelete = null;
+    $uploadedPhotoToDeleteOnError = null;
+    $uploadedVideoToDeleteOnError = null;
 
-    // ---------- Update photo if new one uploaded ----------
-    if (isset($_FILES['recipePhoto']) && $_FILES['recipePhoto']['error'] == UPLOAD_ERR_OK) {
-        $photoUploadDir = 'uploads/photos/';
-
-        if (!is_dir($photoUploadDir)) {
-            mkdir($photoUploadDir, 0777, true);
-        }
-
-        $photoName = $_FILES['recipePhoto']['name'];
-        $photoTmp = $_FILES['recipePhoto']['tmp_name'];
-        $photoExt = strtolower(pathinfo($photoName, PATHINFO_EXTENSION));
-        $allowedPhotoTypes = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-        if (!in_array($photoExt, $allowedPhotoTypes)) {
-            die('Invalid photo type. Allowed types: jpg, jpeg, png, gif, webp');
-        }
-
-        $newPhotoName = 'recipe_' . time() . '_' . uniqid() . '.' . $photoExt;
-
-        if (!move_uploaded_file($photoTmp, $photoUploadDir . $newPhotoName)) {
-            die('Failed to upload recipe photo. Check uploads/photos folder permissions.');
-        }
-    }
-
-    // ---------- Update video ----------
-    $videoUploadDir = 'uploads/videos/';
-
-    if (!is_dir($videoUploadDir)) {
-        mkdir($videoUploadDir, 0777, true);
+    $uploadedPhotoName = save_uploaded_photo_file($_FILES['recipePhoto'] ?? [], $userID);
+    if ($uploadedPhotoName !== '') {
+        $newPhotoName = $uploadedPhotoName;
+        $oldPhotoToDelete = $oldPhoto;
+        $uploadedPhotoToDeleteOnError = 'uploads/photos/' . $uploadedPhotoName;
     }
 
     if (isset($_FILES['videoFile']) && $_FILES['videoFile']['error'] !== UPLOAD_ERR_NO_FILE) {
-        if ($_FILES['videoFile']['error'] !== UPLOAD_ERR_OK) {
-            die('Video upload error. Code: ' . $_FILES['videoFile']['error']);
-        }
+        $newVideoPath = save_uploaded_video_file($_FILES['videoFile'], $userID);
+        $oldVideoToDelete = $oldVideo;
+        $uploadedVideoToDeleteOnError = $newVideoPath;
+    } elseif (trim($_POST['videoUrl'] ?? '') !== '') {
+        $newVideoPath = convert_youtube_url_to_embed($_POST['videoUrl']);
+        $oldVideoToDelete = $oldVideo;
+    }
 
-        $videoName = $_FILES['videoFile']['name'];
-        $videoTmp = $_FILES['videoFile']['tmp_name'];
-        $videoExt = strtolower(pathinfo($videoName, PATHINFO_EXTENSION));
-        $allowedVideoTypes = ['mp4', 'mov', 'webm', 'ogg'];
+    try {
+        $pdo->beginTransaction();
 
-        if (!in_array($videoExt, $allowedVideoTypes)) {
-            die('Invalid video type. Allowed types: mp4, mov, webm, ogg');
-        }
+        $sql = "UPDATE Recipe
+                SET categoryID = ?, name = ?, description = ?, photoFileName = ?, videoFilePath = ?
+                WHERE id = ? AND userID = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            $categoryID,
+            $name,
+            $description,
+            $newPhotoName,
+            $newVideoPath,
+            $recipeID,
+            $userID
+        ]);
 
-        $newVideoName = 'video_' . time() . '_' . uniqid() . '.' . $videoExt;
-        $newVideoPath = $videoUploadDir . $newVideoName;
+        $sql = "DELETE FROM Ingredients WHERE recipeID = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$recipeID]);
 
-        if (!move_uploaded_file($videoTmp, $newVideoPath)) {
-            die('Failed to upload video file. Check uploads/videos folder permissions.');
-        }
-    } elseif (!empty($_POST['videoUrl'])) {
-        // YouTube URL only - convert to embed
-        $videoUrl = trim($_POST['videoUrl']);
+        $sql = "INSERT INTO Ingredients (recipeID, ingredientName, ingredientQuantity) VALUES (?, ?, ?)";
+        $stmt = $pdo->prepare($sql);
 
-        if (strpos($videoUrl, 'youtu.be/') !== false) {
-            $videoID = substr($videoUrl, strrpos($videoUrl, '/') + 1);
-            $videoUrl = "https://www.youtube.com/embed/" . $videoID;
-        } elseif (strpos($videoUrl, 'watch?v=') !== false) {
-            parse_str(parse_url($videoUrl, PHP_URL_QUERY), $query);
+        for ($i = 0; $i < count($ingredientNames); $i++) {
+            $ingredientName = trim($ingredientNames[$i]);
+            $ingredientQty = trim($ingredientQtys[$i] ?? '');
 
-            if (!empty($query['v'])) {
-                $videoUrl = "https://www.youtube.com/embed/" . $query['v'];
+            if ($ingredientName !== '' && $ingredientQty !== '') {
+                $stmt->execute([$recipeID, $ingredientName, $ingredientQty]);
             }
         }
 
-        $newVideoPath = $videoUrl;
-    } else {
-        // No new video - keep old one
-        $newVideoPath = $oldVideo;
-    }
+        $sql = "DELETE FROM Instructions WHERE recipeID = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$recipeID]);
 
-    // ---------- Update recipe table ----------
-    $sql = "UPDATE recipe
-            SET categoryID = ?, name = ?, description = ?, photoFileName = ?, videoFilePath = ?
-            WHERE id = ? AND userID = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        $categoryID,
-        $name,
-        $description,
-        $newPhotoName,
-        $newVideoPath,
-        $recipeID,
-        $_SESSION['user_id']
-    ]);
+        $sql = "INSERT INTO Instructions (recipeID, step, stepOrder) VALUES (?, ?, ?)";
+        $stmt = $pdo->prepare($sql);
 
-    // ---------- Delete old ingredients ----------
-    $sql = "DELETE FROM ingredients WHERE recipeID = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$recipeID]);
+        $stepOrder = 1;
+        foreach ($instructionSteps as $step) {
+            $step = trim($step);
 
-    // ---------- Insert new ingredients ----------
-    $sql = "INSERT INTO ingredients (recipeID, ingredientName, ingredientQuantity) VALUES (?, ?, ?)";
-    $stmt = $pdo->prepare($sql);
-
-    for ($i = 0; $i < count($ingredientNames); $i++) {
-        $ingredientName = trim($ingredientNames[$i]);
-        $ingredientQty = trim($ingredientQtys[$i] ?? '');
-
-        if ($ingredientName != '' && $ingredientQty != '') {
-            $stmt->execute([$recipeID, $ingredientName, $ingredientQty]);
+            if ($step !== '') {
+                $stmt->execute([$recipeID, $step, $stepOrder]);
+                $stepOrder++;
+            }
         }
+
+        $pdo->commit();
+
+        delete_old_photo_if_exists($oldPhotoToDelete);
+        delete_local_file_if_exists($oldVideoToDelete);
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        delete_local_file_if_exists($uploadedPhotoToDeleteOnError);
+        delete_local_file_if_exists($uploadedVideoToDeleteOnError);
+        die('Failed to update recipe: ' . $e->getMessage());
     }
 
-    // ---------- Delete old instructions ----------
-    $sql = "DELETE FROM instructions WHERE recipeID = ?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$recipeID]);
-
-    // ---------- Insert new instructions ----------
-    $sql = "INSERT INTO instructions (recipeID, step, stepOrder) VALUES (?, ?, ?)";
-    $stmt = $pdo->prepare($sql);
-
-    $stepOrder = 1;
-    foreach ($instructionSteps as $step) {
-        $step = trim($step);
-
-        if ($step != '') {
-            $stmt->execute([$recipeID, $step, $stepOrder]);
-            $stepOrder++;
-        }
-    }
-
-    // ---------- Redirect ----------
-    header("Location: Myrecipes.php");
+    header('Location: Myrecipes.php');
     exit();
 }
 ?>
@@ -526,6 +629,7 @@ input[type="file"] {
     <h2>Edit recipe</h2>
 
     <form id="editRecipeForm" method="POST" action="edit_recipe.php?id=<?= htmlspecialchars($recipeID) ?>" enctype="multipart/form-data">
+        <input type="hidden" name="MAX_FILE_SIZE" value="134217728">
         <input type="hidden" name="recipeID" value="<?= htmlspecialchars($recipe['id']) ?>">
 
         <div class="form-group">

@@ -422,6 +422,9 @@ width: 130px;
 height: 70px;
 overflow: hidden;
 border-radius: 8px;
+display: flex;
+align-items: center;
+justify-content: center;
 }
 
 .video-box iframe,
@@ -430,6 +433,19 @@ width: 100%;
 height: 100%;
 object-fit: cover;
 border: none;
+}
+
+.watch-video-link {
+color: var(--green);
+font-family: var(--serif);
+font-size: 15px;
+font-weight: 700;
+text-decoration: underline;
+}
+
+.watch-video-link:hover {
+color: var(--lime);
+text-decoration: underline;
 }
 
 
@@ -584,13 +600,7 @@ $video = "https://www.youtube.com/embed/" . $query['v'];
 // 1) YouTube embed links
 if (strpos($video, 'youtube.com/embed/') !== false) {
 ?>
-<iframe
-src="<?= htmlspecialchars($video) ?>"
-width="130"
-height="75"
-frameborder="0"
-allowfullscreen>
-</iframe>
+<a class="watch-video-link" href="watch_video.php?id=<?= htmlspecialchars($recipe['id']) ?>">Watch video</a>
 <?php
 }
 
@@ -603,17 +613,14 @@ str_starts_with($video, 'uploads/videos/')
 || str_ends_with(strtolower($video), '.ogg')
 ) {
 ?>
-<video width="130" height="75" controls>
-<source src="<?= htmlspecialchars($video) ?>">
-Your browser does not support the video tag.
-</video>
+<a class="watch-video-link" href="watch_video.php?id=<?= htmlspecialchars($recipe['id']) ?>">Watch video</a>
 <?php
 }
 
 // 3) Any other URL
 else {
 ?>
-<a href="<?= htmlspecialchars($video) ?>" target="_blank">View Video</a>
+<a class="watch-video-link" href="watch_video.php?id=<?= htmlspecialchars($recipe['id']) ?>">Watch video</a>
 <?php
 }
 
@@ -668,14 +675,15 @@ Delete
        
        
 
-    </main>
-    <section class="brand-banner">
-        <div class="banner-content">
-        </div>
-    </section>
+		    </main>
+
+		    <section class="brand-banner">
+	        <div class="banner-content">
+	        </div>
+	    </section>
     <!-- FOOTER -->
-    <footer class="footer">
-        <div class="container">
+	    <footer class="footer">
+	        <div class="container">
             <div class="footer-content">
                 <div class="footer-divider"></div>
                 <p class="footer-copyright">&copy; 2026 NutriGood</p>
@@ -703,9 +711,8 @@ Delete
                     </a>
                     <span class="footer-brand-text">NutriGood </span>
                 </div>
-            </div>
-        </div>
-    </footer>
-</body>
-</html>
-
+	            </div>
+	        </div>
+	    </footer>
+		</body>
+	</html>
