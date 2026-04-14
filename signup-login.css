@@ -1,0 +1,293 @@
+/* ===================== AUTH PAGES (signup & login) ===================== */
+
+
+.auth-page {
+    min-height: calc(100vh - 140px); 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    background-color: #FFFFFA;
+}
+
+/* The card container  */
+.auth-card {
+    background: linear-gradient(160deg, #e8f5e0 0%, #dcecd4 40%, #c9e0b8 100%);
+    border-radius: 24px;
+    padding: 48px 40px 40px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+/* Title */
+.auth-title {
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 2rem;
+    color: #22381F;
+    margin: 0 0 8px;
+    font-weight: 700;
+}
+
+/* Subtitle */
+.auth-subtitle {
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.95rem;
+    color: #5A5A5A;
+    margin: 0 0 28px;
+}
+
+/* ===================== PROFILE UPLOAD (signup only) ===================== */
+.profile-upload-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+
+.profile-preview {
+    width: 110px;
+    height: 110px;
+    border-radius: 50%;
+    background-color: #d4e8c8;
+    border: 2px solid rgba(34, 56, 31, 0.25);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+
+.default-avatar-icon {
+    width: 70px;
+    height: 70px;
+}
+
+
+.profile-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+
+.upload-btn {
+    display: inline-block;
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #22381F;
+    background: #fff;
+    border: 1.5px solid #22381F;
+    border-radius: 20px;
+    padding: 6px 22px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.upload-btn:hover {
+    background: #22381F;
+    color: #fff;
+}
+
+.upload-hint {
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.82rem;
+    color: #5A5A5A;
+    margin: 6px 0 0;
+}
+
+/* ===================== FORM LAYOUT ===================== */
+.auth-form {
+    text-align: left;
+}
+
+/* Two-column row for first / last name */
+.form-row {
+    display: flex;
+    gap: 14px;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+/* Single form group (label + input) */
+.form-group {
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    display: block;
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #22381F;
+    margin-bottom: 6px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"] {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid rgba(34, 56, 31, 0.35);
+    border-radius: 8px;
+    background: #fff;
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.92rem;
+    color: #2D2D2D;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input::placeholder {
+    color: #9a9a9a;
+}
+
+/* Remove browser autocomplete blue background */
+.form-group input:-webkit-autofill,
+.form-group input:-webkit-autofill:hover,
+.form-group input:-webkit-autofill:focus,
+.form-group input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    -webkit-text-fill-color: #2D2D2D !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #22381F;
+    box-shadow: 0 0 0 3px rgba(34, 56, 31, 0.1);
+}
+
+/* ===================== PASSWORD TOGGLE ===================== */
+.input-password-wrap {
+    position: relative;
+    z-index: 1;  
+}
+
+.input-password-wrap input {
+    padding-right: 42px; 
+}
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #22381F;
+    transition: opacity 0.2s;
+    z-index: 5;  
+}
+
+.toggle-password:hover {
+    opacity: 0.65;
+}
+
+.eye-icon {
+    width: 20px;
+    height: 20px;
+}
+
+/* ===================== FORGOT PASSWORD ===================== */
+.forgot-password {
+    display: block;
+    text-align: right;
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.82rem;
+    color: #5A5A5A;
+    text-decoration: none;
+    margin-top: 5px;
+    transition: color 0.2s;
+}
+
+.forgot-password:hover {
+    color: #22381F;
+    text-decoration: underline;
+}
+
+/* ===================== SUBMIT BUTTONS ===================== */
+.auth-submit-btn {
+    display: block;
+    width: 100%;
+    padding: 13px 0;
+    background-color: #22381F;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+    margin-bottom: 12px;
+}
+
+.auth-submit-btn:hover {
+    background-color: #2d4a2a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+
+.auth-submit-btn:active {
+    transform: translateY(0);
+}
+
+/* Secondary button (Log In as Admin) - slightly lighter shade */
+.auth-submit-btn--secondary {
+    background-color: #2d4a2a;
+    margin-bottom: 0;
+}
+
+.auth-submit-btn--secondary:hover {
+    background-color: #3a5e36;
+}
+
+/* ===================== SWITCH LINK (bottom of card) ===================== */
+.auth-switch {
+    font-family: 'Cooper BT', Georgia, serif;
+    font-size: 0.88rem;
+    color: #5A5A5A;
+    margin: 22px 0 0;
+    text-align: center;
+}
+
+.auth-switch a {
+    color: #22381F;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.auth-switch a:hover {
+    color: #3a5e36;
+    text-decoration: underline;
+}
+
+/* ===================== RESPONSIVE ===================== */
+@media (max-width: 520px) {
+    .auth-card {
+        padding: 36px 24px 32px;
+    }
+
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .auth-title {
+        font-size: 1.7rem;
+    }
+}
